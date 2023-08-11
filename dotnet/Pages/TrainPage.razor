@@ -1,0 +1,166 @@
+﻿@page "/train"
+@implements IAsyncDisposable
+@inject IDialogService _dialogService
+@inject ModelTrainingService _modelTrainingService
+@inject NodeProfileService _nodeProfileService
+
+<PageTitle>@_nodeProfileService.Profile.Name | Train LoRA | @_trainingStatus</PageTitle>
+
+<MudPaper Class="ma-6 pa-8" Elevation="2" MaxWidth="640px">
+    <MudStack Row="true">
+        <MudNumericField @bind-Value="_estimateDataSize" Label="Dataset Size" />
+        <MudButton OnClick="EstimateTrainingDuration" Color="Color.Primary" Variant="Variant.Outlined" Class="my-2">Estimate Training Duration</MudButton>
+        <MudChip>@_estimatedTrainingDuration</MudChip>
+    </MudStack>
+</MudPaper>
+
+<MudPaper Class="ma-6 pa-8" Elevation="2">
+    <MudGrid>
+        <MudItem xs="3"><MudTextField @bind-Value="_loraParameters.OutputDir" Label="Output Path" /></MudItem>
+        <MudItem xs="3"><MudTextField @bind-Value="_loraParameters.ModelPath" Label="Model Path" /></MudItem>
+        <MudItem xs="3"><MudTextField @bind-Value="_loraParameters.DatasetPath" Label="Dataset Path" /></MudItem>
+        <MudItem xs="3">
+            <MudStack>
+                <MudText Typo="Typo.body1">Auto Upload</MudText>
+                <MudCheckBox @bind-Checked="_loraParameters.AutoUploadInProgress" Label="In-Progress Checkpoints" />
+                <MudCheckBox @bind-Checked="_loraParameters.AutoUploadFinal" Label="Final Checkpoint" />
+            </MudStack>
+        </MudItem>
+
+        <MudItem xs="2"><MudNumericField @bind-Value="_loraParameters.LoraR" Label="LoRA Rank" /></MudItem>
+        <MudItem xs="2"><MudNumericField @bind-Value="_loraParameters.LoraAlpha" Label="LoRA Alpha" /></MudItem>
+        <MudItem xs="2"><MudNumericField @bind-Value="_loraParameters.GradientAccumulationSteps" Label="Gradient Accumulation" /></MudItem>
+        <MudItem xs="2"><MudNumericField @bind-Value="_loraParameters.WarmupRatio" Label="Warmup Ratio" /></MudItem>
+        <MudItem xs="2"><MudNumericField @bind-Value="_loraParameters.NumTrainEpochs" Label="# Epochs" /></MudItem>
+        <MudItem xs="2"><MudNumericField @bind-Value="_loraParameters.LearningRate" Label="Learning Rate" /></MudItem>
+    </MudGrid>
+    <MudButton OnClick="_ => AddJob()" Variant="Variant.Filled" Size="Size.Large" Color="Color.Success" StartIcon="@Icons.Material.Filled.Add" Class="mt-4">Add to Queue</MudButton>
+</MudPaper>
+
+<MudPaper Class="ma-6 pa-8" Elevation="2">
+    <MudSimpleTable>
+        <thead>
+            <tr>
+                <th>Status</th>
+                <th>Output Path</th>
+                <th>Model Path</th>
+                <th>Dataset Path</th>
+                <th>LoRA Rank</th>
+                <th>LoRA Alpha</th>
+                <th>Gradient Accumulation</th>
+                <th>Warmup Ratio</th>
+                <th># Epochs</th>
+                <th>Learning Rate</th>
+                <th>&nbsp;</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var job in _modelTrainingService.TrainingQueue)
+            {
+                <tr>
+                    <td>
+                        @if (job.IsComplete)
+                        {
+                            <MudChip Color="Color.Success" Size="Size.Small">Complete</MudChip>
+                        }
+                        else if (job.ScriptStatus != "")
+                        {
+                            <MudChip Color="Color.Primary" Size="Size.Small">@job.ScriptStatus</MudChip>
+                        }
+                    </td>
+                    <td>@job.OutputDir</td>
+                    <td>@job.ModelPath</td>
+                    <td>@job.DatasetPath</td>
+                    <td>@job.LoraR</td>
+                    <td>@job.LoraAlpha</td>
+                    <td>@job.GradientAccumulationSteps</td>
+                    <td>@job.WarmupRatio</td>
+                    <td>@job.NumTrainEpochs</td>
+                    <td>@job.LearningRate</td>
+                    <td><MudButton OnClick="_ => RemoveJob(job)" Variant="Variant.Filled" Size="Size.Small" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" Class="mt-4">Remove</MudButton></td>
+                </tr>
+                @if (!job.IsComplete && job.ScriptStatus != "")
+                {
+                    <tr>
+                        <td colspan="11">
+                            <pre>@job.Stdout<br />@job.Stderr</pre>
+                        </td>
+                    </tr>
+                }
+                @if (job.Checkpoints.Count() > 0)
+                {
+                    <tr>
+                        <td colspan="11">
+                            <MudExpansionPanels>
+                                <MudExpansionPanel Text="Checkpoint Files">
+                                    @foreach (LoraCheckpoint ckpt in job.Checkpoints)
+                                    {
+                                        <MudText Typo="Typo.body1">@($"checkpoint-{ckpt.Step}")</MudText> 
+                                    }
+                                </MudExpansionPanel>
+                            </MudExpansionPanels>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </MudSimpleTable>
+    <MudButton OnClick="_ => StartQueue()" Variant="Variant.Filled" Size="Size.Large" Color="Color.Success" StartIcon="@Icons.Material.Filled.PlayArrow">Start Queue</MudButton>
+</MudPaper>
+
+@code
+{
+    private LoraTrainingJob _loraParameters = new();
+    private string _trainingStatus = "Idle";
+    private string _estimatedTrainingDuration = "0:00:00";
+    private int _estimateDataSize = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _nodeProfileService.GpuStatusUpdated += OnGpuStatusUpdated;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _nodeProfileService.GpuStatusUpdated -= OnGpuStatusUpdated;
+    }
+
+    private async Task AddJob()
+    {
+        _modelTrainingService.TrainingQueue.Add(new LoraTrainingJob(_loraParameters));
+    }
+
+    private async Task EstimateTrainingDuration()
+    {
+        int estimatedSeconds = _modelTrainingService.EstimateSpeed(_estimateDataSize) * _estimateDataSize;
+        _estimatedTrainingDuration = TimeSpan.FromSeconds(estimatedSeconds).ToString();
+    }
+
+    private void OnGpuStatusUpdated(object sender, EventArgs e)
+    {
+        LoraTrainingJob? currentJob = _modelTrainingService.TrainingQueue.FirstOrDefault(j => j.IsComplete == false && j.ScriptStatus != "");
+        if (currentJob != null)
+        {
+            _trainingStatus = currentJob.ScriptStatus + (currentJob.TimeRemaining != "" ? $" ({currentJob.TimeRemaining})" : "");
+            int remainingJobs = _modelTrainingService.TrainingQueue.Count - _modelTrainingService.TrainingQueue.IndexOf(currentJob) - 1;
+            if (remainingJobs > 0) _trainingStatus += $" +{remainingJobs} jobs";
+        }
+        else
+        {
+            _trainingStatus = "Idle";
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task RemoveJob(LoraTrainingJob job)
+    {
+        bool? result = await _dialogService.ShowMessageBox("Confirm", $"Are you sure you want to remove this job?", "Remove", "Cancel");
+        if (result != true) return;
+        _modelTrainingService.TrainingQueue.RemoveAt(_modelTrainingService.TrainingQueue.IndexOf(job));
+    }
+
+    private async Task StartQueue()
+    {
+        _modelTrainingService.StartQueue();
+    }
+}

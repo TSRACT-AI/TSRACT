@@ -1,0 +1,16 @@
+﻿@inherits LayoutComponentBase
+
+<PageTitle>TSRACT | Loading...</PageTitle>
+
+<MudThemeProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <Sidebar />
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>

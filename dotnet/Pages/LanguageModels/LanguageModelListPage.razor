@@ -1,0 +1,34 @@
+﻿@page "/language-models"
+@inject LanguageModelService _languageModelService
+@inject NavigationManager _navigationManager
+
+<LanguageModelList Items="_items" OnItemSelected="OnItemSelected" />
+
+<MudButton OnClick="AddNew" Variant="Variant.Filled" Color="Color.Success">Add New</MudButton>
+
+@code
+{
+    private List<LanguageModel> _items = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _items = await _languageModelService.GetAll();
+    }
+
+    private async Task AddNew()
+    {
+        LanguageModel newItem = new();
+        newItem = await _languageModelService.Save(newItem);
+        _navigationManager.NavigateTo("/language-models/" + newItem.Id);
+    }
+
+    private async Task OnItemSelected(LanguageModel item)
+    {
+        _navigationManager.NavigateTo("/language-models/" + item.Id);
+    }
+}

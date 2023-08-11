@@ -1,0 +1,21 @@
+﻿<MudDialog DefaultFocus="DefaultFocus.FirstChild">
+    <DialogContent>
+        <MudTextField @bind-Value="Item" Label="@Label" Variant="Variant.Outlined" Immediate="true" OnKeyUp="Save" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="_ => MudDialog.Cancel()" Variant="Variant.Outlined" Color="Color.Warning">Cancel</MudButton>
+        <MudButton OnClick="_ => Save()" Variant="Variant.Filled" Color="Color.Success">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code
+{
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+    [Parameter] public string Item { get; set; } = "";
+    [Parameter] public string Label { get; set; } = "";
+
+    private void Save(KeyboardEventArgs? e = null)
+    {
+        if (e == null || e.Key == "Enter") MudDialog.Close(DialogResult.Ok(Item));
+    }
+}

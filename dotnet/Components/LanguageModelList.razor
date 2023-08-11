@@ -1,0 +1,25 @@
+﻿<MudSimpleTable Dense="true" Hover="true">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Path</th>
+            <th>&nbsp;</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (LanguageModel item in Items)
+        {
+            <tr>
+                <td>@item.Name</td>
+                <td>@item.Path</td>
+                <td><MudButton OnClick="_ => OnItemSelected.InvokeAsync(item)" Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary">Select</MudButton></td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+@code
+{
+    [Parameter] public List<LanguageModel> Items { get; set; } = new();
+    [Parameter] public EventCallback<LanguageModel> OnItemSelected { get; set; }
+}

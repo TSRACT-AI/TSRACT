@@ -1,0 +1,148 @@
+﻿@implements IAsyncDisposable
+@inject CloudStorageService _cloudStorageService
+@inject IDialogService _dialogService
+@inject IJSRuntime _jsRuntime
+@inject NodeProfileService _nodeProfileService
+@inject PromptLogService _promptLogService
+@inject ISnackbar _snackbar
+
+<MudDrawer Open="true">
+    <MudLink OnClick="EditNodeName" Typo="Typo.h4" Class="mx-4 my-2">@_nodeProfileService.Profile.Name</MudLink>
+
+    <MudNavMenu>
+        <MudNavLink Href="/" Match="NavLinkMatch.All">Analysis</MudNavLink>
+        <MudNavLink Href="/mix-datasets" Match="NavLinkMatch.Prefix">Mix Datasets</MudNavLink>
+        <MudNavLink Href="/train" Match="NavLinkMatch.Prefix">Train LoRA</MudNavLink>
+    </MudNavMenu>
+
+    <MudSpacer />
+
+    <MudList>
+        <MudListItem>
+            <MudStack Row="true">
+                <MudIcon Icon="@Icons.Material.Filled.SettingsEthernet" />
+                <MudText Typo="Typo.body1">IP Address</MudText>
+            </MudStack>
+            <MudStack Row="true" Class="mt-1">
+                @if (_showIp)
+                {
+                    <MudLink OnClick="_ => _showIp = false" Typo="Typo.body1">@_nodeProfileService.Profile.IpAddress</MudLink>
+                }
+                else
+                {
+                    <MudLink OnClick="_ => _showIp = true" Typo="Typo.body1">Show</MudLink>
+                }
+
+                <MudIconButton OnClick="CopyIpAddress" Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" />
+            </MudStack>
+        </MudListItem>
+
+        @*Not ready yet!*@
+@*        <MudListItem>
+            <MudStack Row="true">
+                <MudIcon Icon="@Icons.Material.Filled.CloudUpload" />
+                <MudText Typo="Typo.body1">Cloud Storage</MudText>
+            </MudStack>
+            <MudStack Row="true" Class="mt-1">
+                @if (_cloudStorageService.AzureBlobSasUrl == "")
+                {
+                    <MudLink OnClick="EnterAzureBlobSasUrl">Enter Azure Blob SAS URL</MudLink>
+                }
+                else
+                {
+                    <MudChip OnClick="EnterAzureBlobSasUrl" Color="Color.Success" Size="Size.Small">Azure Blob Storage Connected</MudChip>
+                }
+            </MudStack>
+        </MudListItem>*@
+
+        <MudListItem>
+            <MudStack Row="true">
+                <MudIcon Icon="@Icons.Material.Filled.Book" />
+                <MudText Typo="Typo.body1">Prompt Log</MudText>
+            </MudStack>
+            @if (!_promptLogService.IsLoaded())
+            {
+                <MudStack Row="true">
+                    <MudTextField @bind-Value="_logPath" Label="Log Path" Variant="Variant.Outlined" />
+                    <MudButton OnClick="LoadPromptLog" Variant="Variant.Outlined" Color="Color.Primary" Class="my-2">Load</MudButton>
+                </MudStack>
+            }
+            else
+            {
+                <MudChip Color="Color.Success">Log @_logPath loaded</MudChip>
+            }
+        </MudListItem>
+        
+        @foreach (GpuProfile device in _nodeProfileService.Profile.Gpus)
+        {
+            <MudListItem>
+                <MudStack Row="true">
+                    <MudIcon Icon="@Icons.Material.Filled.Memory" />
+                    <MudText Typo="Typo.body1">@($"gpu{device.Index}")</MudText>
+                </MudStack>
+                <MudStack Class="mt-1" Spacing="0">
+                    <MudText Typo="Typo.caption">@device.Name</MudText>
+                    <MudText Typo="Typo.caption">@($"{device.CurrentStatus.GpuUtilization}% GPU {device.CurrentStatus.Temperature}C")</MudText>
+                    <MudText Typo="Typo.caption">@device.CurrentStatus.MemoryUtilization% VRAM (@device.CurrentStatus.MemoryUsed / @device.MemoryTotal)</MudText>
+                </MudStack>
+            </MudListItem>
+        }
+    </MudList>
+</MudDrawer>
+
+@code
+{
+    private bool _showIp = false;
+    private string _logPath = "./default-log.json";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _nodeProfileService.GpuStatusUpdated += OnGpuStatusUpdated;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _nodeProfileService.GpuStatusUpdated -= OnGpuStatusUpdated;
+    }
+
+    private async Task CopyIpAddress()
+    {
+        await _jsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", _nodeProfileService.Profile.IpAddress);
+        _snackbar.Add("Copied IP address to clipboard.", Severity.Success);
+    }
+
+    private async Task EditNodeName()
+    {
+        var dialogParams = new DialogParameters();
+        dialogParams.Add("Item", _nodeProfileService.Profile.Name);
+        dialogParams.Add("Label", "Tab Title");
+        var dialog = _dialogService.Show<StringEditDialog>("Edit Tab Title", dialogParams);
+        var result = await dialog.Result;
+        if (result.Canceled) return;
+        _nodeProfileService.Profile.Name = (string)result.Data;
+        StateHasChanged();
+    }
+
+    private async Task EnterAzureBlobSasUrl()
+    {
+        var dialogParams = new DialogParameters();
+        dialogParams.Add("Item", _cloudStorageService.AzureBlobSasUrl);
+        dialogParams.Add("Label", "Azure Blob SAS URL");
+        var dialog = _dialogService.Show<StringEditDialog>("Enter Azure Blob SAS URL", dialogParams);
+        var result = await dialog.Result;
+        if (result.Canceled) return;
+        _cloudStorageService.AzureBlobSasUrl = (string)result.Data;
+        StateHasChanged();
+    }
+
+    private async Task LoadPromptLog()
+    {
+        await _promptLogService.Load(_logPath);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnGpuStatusUpdated(object? sender, EventArgs e)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+}

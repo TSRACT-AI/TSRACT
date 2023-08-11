@@ -1,0 +1,67 @@
+﻿@page "/mix-datasets"
+@using System.Text
+@using System.Text.Json
+@inject NodeProfileService _nodeProfileService
+@inject ISnackbar _snackbar
+
+<PageTitle>@_nodeProfileService.Profile.Name | Mix Datasets</PageTitle>
+
+<MudPaper Elevation="2" Class="ma-6 pa-4">
+    <MudText Typo="Typo.h6">Mix Datasets</MudText>
+    <MudDivider Class="my-2" />
+    <MudStack>
+        @foreach (WeightedPath row in _mixDatasets)
+        {
+            <MudGrid>
+                <MudItem xs="7"><MudTextField T="string" @bind-Value="row.Path" Label="Path" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="4"><MudNumericField @bind-Value="row.Weight" Label="Weight" Min="0.0f" Max="1.0f" Variant="Variant.Outlined" /></MudItem>
+                <MudItem xs="1"><MudIconButton OnClick="_ => _mixDatasets.RemoveAt(_mixDatasets.IndexOf(row))" Variant="Variant.Filled" Color="Color.Error" Icon="@Icons.Material.Filled.Delete" Size="Size.Large" Class="mt-3" /></MudItem>
+            </MudGrid>
+        }
+        <MudButton OnClick="_ => _mixDatasets.Add(new WeightedPath())" Variant="Variant.Filled" Color="Color.Primary">Add Dataset</MudButton>
+    </MudStack>
+    <MudTextField @bind-Value="_mixOutputPath" Label="Output Path" Variant="Variant.Outlined" />
+    <MudButton OnClick="MixDatasets" Variant="Variant.Filled" Color="Color.Success" Class="mt-2">Mix</MudButton>
+</MudPaper>
+
+@code
+{
+    private List<WeightedPath> _mixDatasets = new List<WeightedPath>();
+    private string _mixOutputPath = "";
+
+    private async Task MixDatasets()
+    {
+        List<JsonTextData> result = new List<JsonTextData>();
+        _snackbar.Add("Mixing datasets...", Severity.Info);
+
+        for (int i = 0; i < _mixDatasets.Count; i++)
+        {
+            string path = _mixDatasets[i].Path;
+            if (!File.Exists(path)) return;
+
+            JsonTextData[] fileData;
+            using (Stream stream = new FileStream(path, FileMode.Open, FileAccess.Read))
+            {
+                fileData = await JsonSerializer.DeserializeAsync<JsonTextData[]>(stream);
+            }
+
+            int numData = (int)(fileData.Length * _mixDatasets[i].Weight);
+            for (int j = 0; j < numData; j++)
+            {
+                result.Add(fileData[j]);
+            }
+        }
+
+        // Randomize the order of the data
+        Random rnd = new Random();
+        result = result.OrderBy(x => rnd.Next()).ToList();
+        
+        JsonSerializerOptions jso = new JsonSerializerOptions();
+        jso.Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
+        string jsonString = JsonSerializer.Serialize(result, jso);
+        byte[] jsonBytes = Encoding.UTF8.GetBytes(jsonString);
+        await File.WriteAllBytesAsync(_mixOutputPath, jsonBytes);
+
+        _snackbar.Add($"Saved mixed dataset to {_mixOutputPath} with {result.Count} rows", Severity.Success);
+    }
+}

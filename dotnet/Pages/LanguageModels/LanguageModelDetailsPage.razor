@@ -1,0 +1,20 @@
+﻿@page "/language-models/{Id}"
+@inject LanguageModelService _languageModelService
+
+<h1>@Id</h1>
+
+@code
+{
+    [Parameter] public string Id { get; set; }
+    private LanguageModel _item = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _item = await _languageModelService.GetById(new Guid(Id));
+    }
+}

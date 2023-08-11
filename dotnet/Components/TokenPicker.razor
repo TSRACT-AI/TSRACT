@@ -1,0 +1,73 @@
+﻿<MudStack Row="true">
+    <MudTextField
+        @bind-Value="searchString"
+        Placeholder="Search..."
+        Variant="Variant.Text"
+        Immediate="true"
+        Adornment="Adornment.Start"
+        AdornmentIcon="@Icons.Material.Filled.Search"
+        OnKeyUp="OnSearchKeyUp"
+    />
+    <MudButton OnClick="SearchVocab" Color="Color.Primary" Variant="Variant.Filled" Class="my-2">Search</MudButton>
+</MudStack>
+
+<MudTable Items="filteredTokens.Take(100)" Dense="true" Style="max-height: 450px; overflow-y: scroll;">
+    <HeaderContent>
+        <MudTh>Token ID</MudTh>
+        <MudTh>Text</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>
+            @if (SelectedTokens.ContainsKey(context.Key))
+            {
+                <MudLink OnClick="_ => OnTokenRemove.InvokeAsync(context.Key)" Typo="Typo.caption" Color="Color.Secondary">- @context.Key</MudLink>
+            }
+            else
+            {
+                <MudLink OnClick="_ => OnTokenAdd.InvokeAsync(context.Key)" Typo="Typo.caption">+ @context.Key</MudLink>
+            }
+        </MudTd>
+        <MudTd><pre style="background-color: #eee;">@context.Value</pre></MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code
+{
+    [Parameter] public Dictionary<int, string> Vocabulary { get; set; } = new();
+    [Parameter] public Dictionary<int, string> SelectedTokens { get; set; } = new();
+    [Parameter] public EventCallback<int> OnTokenAdd { get; set; }
+    [Parameter] public EventCallback<int> OnTokenRemove { get; set; }
+
+    private Dictionary<int, string> filteredTokens = new();
+    private string searchString = "";
+
+    protected override void OnParametersSet()
+    {
+        SearchVocab();
+    }
+
+    private void OnSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            SearchVocab();
+        }
+    }
+
+    private void SearchVocab()
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+        {
+            filteredTokens = new Dictionary<int, string>(Vocabulary);
+        }
+        else
+        {
+            // Convert the search string to lowercase for case-insensitive matching.
+            string lowerSearchString = searchString.ToLowerInvariant();
+
+            filteredTokens = Vocabulary
+                .Where(token => token.Value.ToLowerInvariant().Contains(lowerSearchString))
+                .ToDictionary(token => token.Key, token => token.Value);
+        }
+    }
+}

@@ -1,0 +1,10 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs
+/dotnet/.config
+/dotnet/.vs
+/dotnet/bin
+/dotnet/obj
+/dotnet/Properties
