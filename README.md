@@ -37,13 +37,18 @@ TSRACT is an open-source tool that allows you to train language model LoRAs and 
 TSRACT Windows compatibility is shaky at this time. Still sorting out CUDA/bitsandbytes-related issues. My goal is to have this work as a one-click setup on both Windows and Linux.
 
 ### On Runpod
-1. Start a new pod using the `RunPod Pytorch 2.0.1` template, be sure to include 40-50GB of storage and open ports `8888,5000`. `8888` will be for the JupyterLab console and `5000` will be for TSRACT.
-2. `apt-get update && apt-get install -y dotnet-sdk-7.0` to install the .NET 7 SDK.
-3. `git clone https://github.com/TSRACT-AI/TSRACT.git && cd TSRACT`
-4. You should pre-download models as the auto-downloader does not currently report progress to the TSRACT UI. Working on it! You can run `python download-base-model.py` to download `openlm-research/open_llama_7b` to get started.
-5. `chmod +x ./start-linux-baremetal.sh`
-6. `./start-linux-baremetal.sh` will install the remaining Python dependencies and run TSRACT on port 5000.
-7. From the RunPod Connect dialog, click the button to connect on port 5000.
+Start a new pod using the `RunPod Pytorch 2.0.1` template, be sure to include 40-50GB of storage and open ports `8888,5000`. `8888` will be for the JupyterLab console and `5000` will be for TSRACT.
+
+```
+apt-get update && apt-get install -y dotnet-sdk-7.0
+git clone https://github.com/TSRACT-AI/TSRACT.git && cd TSRACT
+chmod +x ./start-linux-baremetal.sh
+./start-linux-baremetal.sh
+```
+
+From the RunPod Connect dialog, click the button to connect on port 5000.
+
+You should pre-download models as the auto-downloader does not currently report progress to the TSRACT UI. Working on it! You can run `python download-base-model.py` to download `openlm-research/open_llama_7b` to get started.
 
 ℹ️ Note: If you will be training LoRAs, you must do `pip install wandb && wandb login` and enter your API key, if you are only running inference you can skip this step.
 
