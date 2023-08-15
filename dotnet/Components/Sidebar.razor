@@ -3,6 +3,7 @@
 @inject IDialogService _dialogService
 @inject IJSRuntime _jsRuntime
 @inject NodeProfileService _nodeProfileService
+@inject OpenAiService _openAiService
 @inject PromptLogService _promptLogService
 @inject ISnackbar _snackbar
 
@@ -35,6 +36,23 @@
                 }
 
                 <MudIconButton OnClick="CopyIpAddress" Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" />
+            </MudStack>
+        </MudListItem>
+
+        <MudListItem>
+            <MudStack Row="true">
+                <MudIcon Icon="@Icons.Material.Filled.Key" />
+                <MudText Typo="Typo.body1">OpenAI API Key</MudText>
+            </MudStack>
+            <MudStack Row="true" Class="mt-1">
+                @if (!_openAiService.IsApiKeySet())
+                {
+                    <MudLink OnClick="EnterOpenAiApiKey">Enter OpenAI API Key</MudLink>
+                }
+                else
+                {
+                    <MudChip OnClick="EnterOpenAiApiKey" Color="Color.Success" Size="Size.Small">OpenAI API Key Entered</MudChip>
+                }
             </MudStack>
         </MudListItem>
 
@@ -121,7 +139,7 @@
         var result = await dialog.Result;
         if (result.Canceled) return;
         _nodeProfileService.Profile.Name = (string)result.Data;
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task EnterAzureBlobSasUrl()
@@ -133,7 +151,21 @@
         var result = await dialog.Result;
         if (result.Canceled) return;
         _cloudStorageService.AzureBlobSasUrl = (string)result.Data;
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task EnterOpenAiApiKey()
+    {
+        string key = "";
+        var dialogParams = new DialogParameters();
+        dialogParams.Add("Item", key);
+        dialogParams.Add("Label", "OpenAI API Key");
+        var dialog = _dialogService.Show<StringEditDialog>("Enter OpenAI API Key", dialogParams);
+        var result = await dialog.Result;
+        if (result.Canceled) return;
+        key = (string)result.Data;
+        if (!String.IsNullOrEmpty(key)) await _openAiService.SetApiKey(key);
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task LoadPromptLog()
