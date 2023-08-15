@@ -1,0 +1,57 @@
+﻿@page "/chatgpt-import"
+@using System.Text
+@using System.Text.Json
+@using TSRACT.Models.OpenAi;
+@inject NodeProfileService _nodeProfileService
+@inject OpenAiService _openAiService
+@inject ISnackbar _snackbar
+
+<PageTitle>@_nodeProfileService.Profile.Name | ChatGPT Import</PageTitle>
+
+<MudPaper Elevation="2" Class="ma-6 pa-4">
+    <MudText Typo="Typo.h6">Open ChatGPT History</MudText>
+    <MudDivider Class="my-2" />
+    <MudTextField @bind-Value="_filePath" Label="ChatGPT Export File Path" Variant="Variant.Outlined" />
+    <MudButton OnClick="LoadHistory" Variant="Variant.Filled" Color="Color.Success" Class="mt-2">Load</MudButton>
+</MudPaper>
+
+<MudGrid>
+    <MudItem xs="3">
+        <MudTable T="ChatConversation" Items="_conversations" Dense="true" Height="480px;" FixedHeader="true" OnRowClick="ConversationTableClick">
+            <HeaderContent>
+                <MudTh>Title</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd><pre>@context.Title</pre></MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudItem>
+    <MudItem xs="9">
+        @if (_currentConversation != null)
+        {
+            ChatMapping rootMapping = _currentConversation.Mapping.First(x => x.Value.Parent == null).Value;
+            <ChatGptHistoryMessageCard Conversation="_currentConversation" CurrentMapping="rootMapping" />
+        }
+    </MudItem>
+</MudGrid>
+
+@code
+{
+    private string _filePath = "";
+    private List<ChatConversation> _conversations = new();
+    private ChatConversation? _currentConversation = null;
+
+    private async Task ConversationTableClick(TableRowClickEventArgs<ChatConversation> args)
+    {
+        _currentConversation = args.Item;
+        _snackbar.Add($"Displaying {args.Item.Title}", Severity.Info);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadHistory()
+    {
+        _snackbar.Add("Loading conversations...", Severity.Info);
+        _conversations = _openAiService.LoadFromPath(_filePath);
+        _snackbar.Add("Sucessfully loaded conversations!", Severity.Success);
+    }
+}

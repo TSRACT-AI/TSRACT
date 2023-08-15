@@ -1,0 +1,61 @@
+﻿@using Markdig;
+@using TSRACT.Models.OpenAi;
+
+<MudPaper Class="ma-2 pa-2" Elevation="2">
+    <MudGrid>
+        <MudItem xs="2">
+            <MudIconButton OnClick="_ => OnPrevious.InvokeAsync()" Icon="@Icons.Material.Filled.ArrowLeft" Size="Size.Small" Disabled="!ShowPrevious" />
+            <MudIconButton OnClick="_ => OnNext.InvokeAsync()" Icon="@Icons.Material.Filled.ArrowRight" Size="Size.Small" Disabled="!ShowNext" />
+            <br /><MudText Typo="Typo.caption">@ChildText</MudText>
+        </MudItem>
+        <MudItem xs="10">
+            <MudText Typo="Typo.caption">@CurrentMapping.Id</MudText>
+            <MudText Typo="Typo.caption">
+                <br />Children:
+                @foreach (string childId in CurrentMapping.Children)
+                {
+                    <br />@childId
+                }
+            </MudText>
+            @if (CurrentMapping.Message != null)
+            {
+                <MudText Typo="Typo.caption"><br />@CurrentMapping.Message.Author.Role</MudText>
+                @foreach (string messagePart in CurrentMapping.Message.Content.Parts)
+                {
+                    <div class="ml-6">@((MarkupString)Markdown.ToHtml(messagePart))</div>
+                }
+            }
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (CurrentMapping.Children.Count > 0)
+{
+    string childId = CurrentMapping.Children[_currentChildIndex];
+    string childText = "";
+    if (CurrentMapping.Children.Count > 1)
+    {
+        childText = $"{_currentChildIndex + 1} of {CurrentMapping.Children.Count}";
+    }
+    <ChatGptHistoryMessageCard
+        Conversation="Conversation"
+        CurrentMapping="Conversation.Mapping[childId]"
+        ChildText="@childText"
+        ShowPrevious="CurrentMapping.Children.Count > 1 && _currentChildIndex > 0"
+        ShowNext="CurrentMapping.Children.Count > 1 && _currentChildIndex < CurrentMapping.Children.Count - 1"
+        OnPrevious="_ => _currentChildIndex--"
+        OnNext="_ => _currentChildIndex++"
+    />
+}
+
+@code
+{
+    [Parameter] public ChatConversation Conversation { get; set; } = new();
+    [Parameter] public ChatMapping CurrentMapping { get; set; } = new();
+    [Parameter] public string ChildText { get; set; } = "";
+    [Parameter] public bool ShowPrevious { get; set; } = false;
+    [Parameter] public bool ShowNext { get; set; } = false;
+    [Parameter] public EventCallback OnPrevious { get; set; }
+    [Parameter] public EventCallback OnNext { get; set; }
+    private int _currentChildIndex = 0;
+}

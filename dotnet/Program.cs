@@ -23,6 +23,7 @@ builder.Services.AddSingleton<CloudStorageService>();
 builder.Services.AddSingleton<LanguageModelService>();
 builder.Services.AddSingleton<ModelTrainingService>();
 builder.Services.AddSingleton<NodeProfileService>();
+builder.Services.AddSingleton<OpenAiService>();
 builder.Services.AddSingleton<PromptLogService>();
 
 bool listenAllBindings = builder.Configuration.GetValue<bool?>("listen-all-bindings") ?? false;

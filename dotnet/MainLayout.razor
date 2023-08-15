@@ -2,7 +2,7 @@
 
 <PageTitle>TSRACT | Loading...</PageTitle>
 
-<MudThemeProvider />
+<MudThemeProvider Theme="_theme" />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
@@ -14,3 +14,18 @@
         </MudContainer>
     </MudMainContent>
 </MudLayout>
+
+@code
+{
+    MudTheme _theme = new MudTheme()
+    {
+        Typography = new Typography()
+        {
+            Button = new Button()
+            {
+                LineHeight = 1,
+                TextTransform = "none"
+            }
+        }
+    };
+}
