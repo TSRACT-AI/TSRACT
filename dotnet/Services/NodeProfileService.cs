@@ -110,7 +110,7 @@ namespace TSRACT.Services
                     {
                         FileName = "nvidia-smi",
                         UseShellExecute = false,
-                        RedirectStandardOutput = true,
+                        //RedirectStandardOutput = true,
                         CreateNoWindow = true
                     }
                 };

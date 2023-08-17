@@ -1,0 +1,45 @@
+﻿@page "/chat"
+@using Azure.AI.OpenAI
+@inject IJSRuntime _jsRuntime
+@inject OpenAiService _openAiService
+
+@if (_messages.Count() > 1)
+{
+    <MudTextField @bind-Value="@(_messages.First(x => x.Role == "user").Content)" />
+    <MudButton OnClick="StreamChatCompletion" Variant="Variant.Filled" Color="Color.Primary">Send</MudButton>
+}
+
+<MudPaper Class="ma-2 pa-2" Elevation="2">
+    <div id="output"></div>
+</MudPaper>
+
+
+@code
+{
+    private List<ChatMessage> _messages = new()
+    {
+        new ChatMessage() { Role = "system", Content = "You are a helpful assistant." },
+        new ChatMessage() { Role = "user", Content = "" }
+    };
+
+    private string _result = "";
+
+    public async Task StreamChatCompletion()
+    {
+        ChatCompletionsOptions oaiRequest = new()
+        {
+            MaxTokens = 1024
+        };
+
+        foreach (ChatMessage message in _messages)
+        {
+            oaiRequest.Messages.Add(message);
+        }
+
+        await foreach (string item in _openAiService.ChatStream("gpt-4", oaiRequest))
+        {
+            _result += item;
+            await _jsRuntime.InvokeVoidAsync("writeToScreen", "output", item);
+        }
+    }
+}

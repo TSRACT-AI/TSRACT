@@ -17,7 +17,7 @@
 
 <MudGrid>
     <MudItem xs="3">
-        <MudTable T="ChatConversation" Items="_conversations" Dense="true" Height="480px;" FixedHeader="true" OnRowClick="ConversationTableClick">
+        <MudTable T="ChatLogConversation" Items="_conversations" Dense="true" Height="480px;" FixedHeader="true" OnRowClick="ConversationTableClick">
             <HeaderContent>
                 <MudTh>Title</MudTh>
             </HeaderContent>
@@ -29,7 +29,7 @@
     <MudItem xs="9">
         @if (_currentConversation != null)
         {
-            ChatMapping rootMapping = _currentConversation.Mapping.First(x => x.Value.Parent == null).Value;
+            ChatLogMapping rootMapping = _currentConversation.Mapping.First(x => x.Value.Parent == null).Value;
             <ChatGptHistoryMessageCard Conversation="_currentConversation" CurrentMapping="rootMapping" />
         }
     </MudItem>
@@ -38,10 +38,10 @@
 @code
 {
     private string _filePath = "";
-    private List<ChatConversation> _conversations = new();
-    private ChatConversation? _currentConversation = null;
+    private List<ChatLogConversation> _conversations = new();
+    private ChatLogConversation? _currentConversation = null;
 
-    private async Task ConversationTableClick(TableRowClickEventArgs<ChatConversation> args)
+    private async Task ConversationTableClick(TableRowClickEventArgs<ChatLogConversation> args)
     {
         _currentConversation = args.Item;
         _snackbar.Add($"Displaying {args.Item.Title}", Severity.Info);
