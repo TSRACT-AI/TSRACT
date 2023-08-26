@@ -20,25 +20,4 @@
       </Content>
     </ItemGroup>
 
-    <ItemGroup>
-      <None Update="PythonScripts\download_hf_repo.py">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
-      <None Update="PythonScripts\NextTokenProbs_llama.py">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
-      <None Update="PythonScripts\DumpTokenizer_llama.py">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
-      <None Update="PythonScripts\TrainLora_llama_mock.py">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
-      <None Update="PythonScripts\TrainLora_llama.py">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
-      <None Update="requirements.txt">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </None>
-    </ItemGroup>
-
 </Project>

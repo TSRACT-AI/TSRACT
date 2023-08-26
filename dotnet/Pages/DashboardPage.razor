@@ -1,0 +1,59 @@
+﻿@page "/"
+@inject NodeProfileService _nodeProfileService
+
+<PageTitle>@_nodeProfileService.Profile.Name | Dashboard</PageTitle>
+
+<MudGrid>
+    <MudItem xs="3">
+        <MudPaper Elevation="2" Class="ma-2 pa-2">
+            <MudText Typo="Typo.h3">Hardware</MudText>
+            <MudList>
+                @foreach (GpuProfile device in _nodeProfileService.Profile.Gpus)
+                {
+                    <MudListItem>
+                        <MudStack Row="true">
+                            <MudIcon Icon="@Icons.Material.Filled.Memory" />
+                            <MudText Typo="Typo.body1">@($"gpu{device.Index}")</MudText>
+                        </MudStack>
+                            <MudText Typo="Typo.caption">@($"{device.Name} ({device.MemoryTotal}GB VRAM)")</MudText>
+                    </MudListItem>
+                }
+            </MudList>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="3">
+        <MudPaper Elevation="2" Class="ma-2 pa-2">
+            <MudText Typo="Typo.h3">Software</MudText>
+            <MudSimpleTable Dense="true">
+                <thead>
+                    <tr>
+                        <th>Software</th>
+                        <th>Present?</th>
+                        <th>Version</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Python</td>
+                        <td>@_nodeProfileService.Profile.PythonRuntime.IsPresent</td>
+                        <td>@_nodeProfileService.Profile.PythonRuntime.InstalledVersion</td>
+                    </tr>
+                    @foreach (var module in _nodeProfileService.Profile.PythonModules)
+                    {
+                        <tr>
+                            <td>@module.Name</td>
+                            <td>@module.IsPresent</td>
+                            <td>@module.InstalledVersion</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code
+{
+
+}

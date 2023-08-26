@@ -58,7 +58,7 @@ namespace TSRACT.Services
         public async Task TrainLoraLlama(LoraTrainingJob loraTrainingJob)
         {
             Process process = new Process();
-            string scriptPath = Path.Combine("PythonScripts", "TrainLora_llama.py");
+            string scriptPath = Path.Combine("python", "TrainLora_llama.py");
             string scriptArgs = $"--model_path \"{loraTrainingJob.ModelPath}\" --dataset_path \"{loraTrainingJob.DatasetPath}\" --output_dir \"{loraTrainingJob.OutputDir}\" --bnb_load_in_4bit {loraTrainingJob.BnbLoadIn4Bit} --bnb_4bit_use_double_quant {loraTrainingJob.Bnb4BitUseDoubleQuant} --bnb_4bit_quant_type \"{loraTrainingJob.Bnb4BitQuantType}\" --lora_r {loraTrainingJob.LoraR} --lora_alpha {loraTrainingJob.LoraAlpha} --lora_target_modules \"{string.Join(",", loraTrainingJob.LoraTargetModules)}\" --lora_dropout {loraTrainingJob.LoraDropout} --lora_bias \"{loraTrainingJob.LoraBias}\" --lora_task_type \"{loraTrainingJob.LoraTaskType}\" --per_gpu_train_batch_size {loraTrainingJob.PerGpuTrainBatchSize} --gradient_accumulation_steps {loraTrainingJob.GradientAccumulationSteps} --warmup_ratio {loraTrainingJob.WarmupRatio} --num_train_epochs {loraTrainingJob.NumTrainEpochs} --learning_rate {loraTrainingJob.LearningRate} --fp16 {loraTrainingJob.Fp16} --optimizer \"{loraTrainingJob.Optimizer}\"";
 
             Directory.CreateDirectory(loraTrainingJob.OutputDir);

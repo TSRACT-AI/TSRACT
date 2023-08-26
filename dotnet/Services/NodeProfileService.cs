@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text;
 using TSRACT.Models;
 
@@ -14,6 +15,8 @@ namespace TSRACT.Services
         {
             Profile.IpAddress = GetIpAddress();
             Profile.Gpus = InventoryGpus();
+            Profile.PythonRuntime = GetPythonVersion();
+            Profile.PythonModules = GetPythonModules();
         }
 
         private string GetIpAddress()
@@ -47,6 +50,110 @@ namespace TSRACT.Services
             }
 
             return "ERROR: Could not get IP";
+        }
+
+        private List<SoftwareDependency> GetPythonModules()
+        {
+            List<SoftwareDependency> result = new();
+
+            Console.WriteLine("Validating python modules...");
+
+            try
+            {
+                foreach (string line in File.ReadAllLines(Path.Combine("..", "python", "requirements.txt")))
+                {
+                    SoftwareDependency dependency = ParseRequirement(line);
+                    if (dependency == null)
+                    {
+                        continue;
+                    }
+
+                    result.Add(dependency);
+                }
+            }
+            catch (Exception ex)
+            {
+                result.Add(new SoftwareDependency { Name = "Error reading requirements.txt", InstalledVersion = ex.Message });
+            }
+
+            // go through each module and run `pip show <module>` for each
+            // parse Name: <name> and Version: <version> from output
+            // if error, set InstalledVersion to error message
+
+            foreach (SoftwareDependency module in result)
+            {
+                try
+                {
+                    Console.WriteLine($"Validating python module {module.Name}...");
+                    Process process = new Process
+                    {
+                        StartInfo = new ProcessStartInfo
+                        {
+                            FileName = "pip",
+                            Arguments = $"show {module.Name}",
+                            UseShellExecute = false,
+                            RedirectStandardOutput = true,
+                            CreateNoWindow = true
+                        }
+                    };
+                    process.Start();
+                    string output = process.StandardOutput.ReadToEnd();
+                    process.WaitForExit();
+                    string[] lines = output.Split('\n');
+
+                    Console.WriteLine($"Split lines for: {module.Name} {lines.Length}");
+
+                    foreach (string line in lines)
+                    {
+                        if (line.StartsWith("Name:"))
+                        {
+                            module.Name = line.Replace("Name:", "").Trim();
+                        }
+                        else if (line.StartsWith("Version:"))
+                        {
+                            module.InstalledVersion = line.Replace("Version:", "").Trim();
+                            module.IsPresent = true;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    module.InstalledVersion = $"Error when running pip: {ex.Message}";
+                }
+            }
+
+            return result;
+        }
+
+        private SoftwareDependency GetPythonVersion()
+        {
+            SoftwareDependency result = new() { Name = "python" };
+
+            try
+            {
+                Process process = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "python",
+                        Arguments = "--version",
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        CreateNoWindow = true
+                    }
+                };
+                process.Start();
+                process.WaitForExit();
+
+                result.InstalledVersion = process.StandardOutput.ReadToEnd();
+                result.IsPresent = true;
+            }
+            catch (Exception ex)
+            {
+                result.InstalledVersion = $"Error when running python: {ex.Message}";
+            }
+
+            return result;
         }
 
         private List<GpuProfile> InventoryGpus()
@@ -182,6 +289,65 @@ namespace TSRACT.Services
             process.BeginOutputReadLine();
         }
 
+        static SoftwareDependency ParseRequirement(string line)
+        {
+            var dependency = new SoftwareDependency();
+
+            if (line.StartsWith("https://github.com/jllllll/bitsandbytes-windows-webui/releases/download/wheels/bitsandbytes-0.41.1-py3-none-win_amd64.whl"))
+            {
+                dependency.Name = "bitsandbytes";
+                dependency.RequiredVersion = "0.41.1";
+                return dependency;
+            }
+
+            if (line.Contains("@"))
+            {
+                // Handle git or URL based dependencies
+                var atParts = line.Split(new[] { " @ " }, StringSplitOptions.None);
+                if (atParts.Length > 1)
+                {
+                    dependency.Name = atParts[0].Trim();
+                    return dependency;
+                }
+                else
+                {
+                    return null; // Malformed line
+                }
+            }
+
+            if (line.StartsWith("http") || line.StartsWith("git"))
+            {
+                // Handle URL or VCS based dependencies differently
+                return null;
+            }
+
+            var parts = line.Split(';');
+            var packageParts = parts[0].Split("==");
+
+            dependency.Name = packageParts[0].Trim();
+
+            if (packageParts.Length > 1)
+            {
+                dependency.RequiredVersion = packageParts[1].Trim();
+            }
+
+            if (parts.Length > 1)
+            {
+                var condition = parts[1].Trim();
+
+                if (condition == "platform_system != \"Windows\"" && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    return null;
+                }
+
+                if (condition == "platform_system == \"Windows\"" && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    return null;
+                }
+            }
+
+            return dependency;
+        }
 
         public async Task StartMonitoring()
         {
