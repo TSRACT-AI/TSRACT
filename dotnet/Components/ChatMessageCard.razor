@@ -1,0 +1,50 @@
+﻿@using Azure.AI.OpenAI;
+
+<MudPaper Elevation="2" Class="ma-2 pa-2">
+    <MudText Typo="Typo.caption">@Message.Role</MudText>
+    <MudTextField T="string"
+        DebounceInterval="500"
+        @bind-Value="@Message.Content"
+        OnDebounceIntervalElapsed="HandleDebounceIntervalElapsed"
+        FullWidth="true"
+        Variant="Variant.Text"
+        Margin="Margin.Dense"
+        Lines="Math.Max(2, _lines)"
+    />
+</MudPaper>
+
+@code
+{
+    [Parameter] public ChatMessage Message { get; set; }
+    private int _lines = 2;
+
+    private async Task HandleDebounceIntervalElapsed(string text)
+    {
+        _lines = CountLines(text);
+        StateHasChanged();
+    }
+
+    private int CountLines(string text, int lineLength = 70)
+    {
+        int lineCount = 1;
+        int charCount = 0;
+        foreach (char c in text)
+        {
+            if (c == '\n')
+            {
+                lineCount++;
+                charCount = 0;
+            }
+            else
+            {
+                charCount++;
+                if (charCount == lineLength)
+                {
+                    lineCount++;
+                    charCount = 0;
+                }
+            }
+        }
+        return lineCount;
+    }
+}

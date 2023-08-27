@@ -101,8 +101,6 @@ namespace TSRACT.Services
                     process.WaitForExit();
                     string[] lines = output.Split('\n');
 
-                    Console.WriteLine($"Split lines for: {module.Name} {lines.Length}");
-
                     foreach (string line in lines)
                     {
                         if (line.StartsWith("Name:"))

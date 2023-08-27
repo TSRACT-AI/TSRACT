@@ -7,9 +7,13 @@
 <PageTitle>@_nodeProfileService.Profile.Name | Chat</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Large">
+    @foreach (ChatMessage message in _messages)
+    {
+        <ChatMessageCard Message="message" />
+    }
+
     @if (_messages.Count() > 1)
     {
-        <MudTextField @bind-Value="@(_messages.First(x => x.Role == "user").Content)" />
         <MudButton OnClick="StreamChatCompletion" Variant="Variant.Filled" Color="Color.Primary">Send</MudButton>
     }
 
@@ -44,8 +48,8 @@
         {
             if (item == null) break; // Final item is always null
             _result += item;
+            await _jsRuntime.InvokeVoidAsync("writeToScreen", "output", _result);
             Console.WriteLine(item);
-            await _jsRuntime.InvokeVoidAsync("writeToScreen", "output", item);
         }
     }
 }
